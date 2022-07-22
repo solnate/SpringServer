@@ -6,6 +6,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.annotations.Expose;
 import com.teko.spring.Server.entity.*;
+import com.teko.spring.Server.interfaces.cancelPayment.CancelResult;
+import com.teko.spring.Server.interfaces.cancelPayment.CancelSuccessResponse;
 import com.teko.spring.Server.entity.isPaymentPossible.Result;
 import com.teko.spring.Server.entity.isPaymentPossible.SuccessResponse;
 import com.teko.spring.Server.handlers.ResponseHandler;
@@ -102,11 +104,16 @@ public class MainControllers {
     public ResponseEntity<Object> resumePossible(@RequestBody DefaultRequest request){
         try {
             Transfer transfer = this.transferService.getTransfer(request.getPartner_tx().getId());
-            this.valuesService.updateValue(request.getPayment().getCurrency(),
-                    (this.valuesService.getValue(request.getPayment().getCurrency()).getAmount() - request.getPayment().getAmount())
+            int currency = request.getPayment().getCurrency();
+            int amount = request.getPayment().getAmount();
+            this.valuesService.updateValue(currency,
+                    (this.valuesService.getValue(currency).getAmount() - amount)
             );
-            this.valuesService.updateValue(request.getSrc_payment().getCurrency(),
-                    (this.valuesService.getValue(request.getSrc_payment().getCurrency()).getAmount() + request.getSrc_payment().getAmount())
+
+            int src_currency = request.getSrc_payment().getCurrency();
+            int src_amount = request.getSrc_payment().getAmount();
+            this.valuesService.updateValue(src_currency,
+                    (this.valuesService.getValue(src_currency).getAmount() + src_amount)
             );
             this.completeTransferService.addTransfer(new CompleteTransfer(
                     request.getPartner_tx().getId(),
@@ -138,11 +145,7 @@ public class MainControllers {
             this.transferService.deleteTransfer(transfer);
             return ResponseHandler.generateResponse(
                     HttpStatus.OK,
-                    new SuccessResponse("true", new Result(
-                            request.getTx(),
-                            request.getPayment(),
-                            request.getRate())
-                    )
+                    new CancelSuccessResponse("true", new CancelResult(request.getTx()))
             );
         } catch (Exception e){
             return ResponseHandler.generateResponse(
